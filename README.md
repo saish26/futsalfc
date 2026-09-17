@@ -1,40 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
+# futsalfc-ui
 
-## Getting Started
+Read-only league centre for **futsalfc-api**: standings, fixtures by game week, results, match events and lineups, teams, players and player stats. Next.js (Pages Router) + Mantine + Tailwind.
 
-First, run the development server:
+## Setup
 
 ```bash
+cp .env.example .env.local
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+| Variable | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_API_BASE_URL` | Base URL axios uses. Default `/backend` goes through the Next rewrite. |
+| `API_PROXY_TARGET` | Where `/backend/*` is forwarded (the Go API, e.g. `http://localhost:8080`). |
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+The Go API has no CORS middleware, so the browser calls `/backend/...` on the Next server, which proxies to the API. If CORS is added to the API later, you can point `NEXT_PUBLIC_API_BASE_URL` straight at it.
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+## Structure
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
-
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+```
+src/
+  config/axios.ts     axios instance (token cookie, unwraps response.data)
+  utils/http.ts       GetRequest / PostRequest / ... wrappers
+  services/api.ts     one function per GET endpoint
+  types/index.ts      response types mirroring the Go structs
+  hooks/useApi.ts     tiny fetch hook (loading / error / reload)
+  components/         MatchCard, StandingsTable, LeagueStats, ...
+  pages/
+    index.tsx               home: active league, current game week, table, leaders
+    leagues/index.tsx       all leagues
+    leagues/[id].tsx        tabs: standings, fixtures, results, player stats, teams
+    gameweeks/[id].tsx      matches in a game week + prev/next
+    matches/[id].tsx        scoreboard, events, lineups (falls back to squads)
+    teams/index.tsx, teams/[id].tsx
+    players/index.tsx, players/[id].tsx
+    stats.tsx               player leaderboard with league picker
+```
