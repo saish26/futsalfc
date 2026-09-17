@@ -1,82 +1,189 @@
-import Image from "next/image";
-import { Geist, Geist_Mono } from "next/font/google";
+import LeaderCard from "@/components/LeaderCard";
+import MatchCard, { matchToRow } from "@/components/MatchCard";
+import Section from "@/components/Section";
+import StandingsTable from "@/components/StandingsTable";
+import StatTile from "@/components/StatTile";
+import { EmptyState, ErrorState, LoadingBlock } from "@/components/States";
+import StatusBadge from "@/components/StatusBadge";
+import { useApi } from "@/hooks/useApi";
+import {
+  getCurrentGameWeek,
+  getCurrentLeaderboards,
+  getGameWeekMatches,
+  getLeagueMatches,
+  getLeagues,
+  getLeagueTeams,
+  getWallet,
+} from "@/services/api";
+import { formatDate, pickActiveLeague } from "@/utils/helpers";
+import { IconBallFootball, IconShoe, IconSquareFilled } from "@tabler/icons-react";
+import dayjs from "dayjs";
+import Head from "next/head";
+import Link from "next/link";
+import { useMemo } from "react";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+const LEADER_ICONS: Record<string, React.ReactNode> = {
+  Goal: <IconBallFootball className="text-pitch" size={22} />,
+  Assist: <IconShoe className="text-sky-400" size={22} />,
+  "Yellow card": <IconSquareFilled className="text-yellow-400" size={18} />,
+  "Red card": <IconSquareFilled className="text-red-500" size={18} />,
+};
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const LEADER_LABELS: Record<string, string> = {
+  Goal: "Top scorer",
+  Assist: "Most assists",
+  "Yellow card": "Most yellow cards",
+  "Red card": "Most red cards",
+};
 
 export default function Home() {
+  const leagues = useApi(getLeagues);
+  const league = useMemo(() => pickActiveLeague(leagues.data ?? []), [leagues.data]);
+  const leagueId = league?.id;
+
+  const current = useApi(getCurrentGameWeek);
+  const weekId = current.data?.week_id;
+  const weekMatches = useApi(() => getGameWeekMatches(weekId!), [weekId], !!weekId);
+
+  const teams = useApi(() => getLeagueTeams(leagueId!), [leagueId], !!leagueId);
+  const matches = useApi(() => getLeagueMatches(leagueId!), [leagueId], !!leagueId);
+  const leaders = useApi(getCurrentLeaderboards);
+  const wallet = useApi(getWallet);
+
+  const played = (matches.data ?? []).filter((m) => m.status === "completed");
+  const recent = [...played]
+    .sort((a, b) => dayjs(b.match_date ?? b.updated_at).valueOf() - dayjs(a.match_date ?? a.updated_at).valueOf())
+    .slice(0, 4);
+  const totalGoals = played.reduce((sum, m) => sum + m.team1_score + m.team2_score, 0);
+
+  if (leagues.loading) return <LoadingBlock rows={4} height={120} />;
+  if (leagues.error) return <ErrorState message={leagues.error} onRetry={leagues.reload} />;
+  if (!league) return <EmptyState title="No leagues yet">Once a league is created it will show up here.</EmptyState>;
+
   return (
-    <div
-      className={`${geistSans.variable} ${geistMono.variable} flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black`}
-    >
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              index.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <>
+      <Head>
+        <title>{league.name} · FutsalFC</title>
+      </Head>
+
+      {/* Hero */}
+      <div className="pitch-lines relative mb-8 overflow-hidden rounded-2xl border border-line px-5 py-8 sm:px-8 sm:py-10">
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusBadge status={league.status} />
+          {current.data && (
+            <span className="text-xs font-semibold uppercase tracking-widest text-green-200/80">
+              Game week {current.data.week_number} of {league.game_weeks}
+            </span>
+          )}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+        <h1 className="font-display mt-3 text-5xl font-extrabold uppercase leading-none tracking-wide sm:text-6xl">
+          {league.name}
+        </h1>
+        <p className="mt-2 text-sm text-green-100/70">
+          {formatDate(league.start_date)} – {formatDate(league.end_date)}
+        </p>
+        <div className="mt-6 flex flex-wrap gap-2">
+          <Link
+            href={`/leagues/${league.id}?tab=fixtures`}
+            className="rounded-md bg-pitch px-4 py-2 text-sm font-semibold text-ink hover:bg-green-400"
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs/pages/getting-started?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Fixtures
+          </Link>
+          <Link
+            href={`/leagues/${league.id}?tab=standings`}
+            className="rounded-md bg-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/20"
           >
-            Documentation
-          </a>
+            Standings
+          </Link>
+          <Link
+            href={`/leagues/${league.id}?tab=stats`}
+            className="rounded-md bg-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/20"
+          >
+            Player stats
+          </Link>
         </div>
-      </main>
-    </div>
+      </div>
+
+      <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <StatTile label="Teams" value={teams.data?.length ?? "–"} />
+        <StatTile label="Matches played" value={matches.data ? played.length : "–"} hint={matches.data && `of ${matches.data.length}`} />
+        <StatTile label="Goals scored" value={matches.data ? totalGoals : "–"} hint={played.length ? `${(totalGoals / played.length).toFixed(1)} per match` : undefined} />
+        <StatTile label="Club wallet" value={wallet.data ? `Rs ${Number(wallet.data.amount).toLocaleString()}` : "–"} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="space-y-8">
+          <Section
+            title={current.data ? `Game week ${current.data.week_number}` : "This week"}
+            action={weekId ? { href: `/gameweeks/${weekId}`, label: "Week details" } : undefined}
+          >
+            {current.loading || weekMatches.loading ? (
+              <LoadingBlock rows={3} height={84} />
+            ) : !current.data ? (
+              <EmptyState title="No upcoming game week">Every game week in the active league is completed.</EmptyState>
+            ) : weekMatches.error ? (
+              <ErrorState message={weekMatches.error} onRetry={weekMatches.reload} />
+            ) : (weekMatches.data ?? []).length === 0 ? (
+              <EmptyState title="No matches scheduled this week" />
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {weekMatches.data!.map((m) => (
+                  <MatchCard key={m.id} match={matchToRow(m)} />
+                ))}
+              </div>
+            )}
+          </Section>
+
+          <Section title="Latest results" action={{ href: `/leagues/${league.id}?tab=results`, label: "All results" }}>
+            {matches.loading ? (
+              <LoadingBlock rows={2} height={84} />
+            ) : recent.length === 0 ? (
+              <EmptyState title="No results yet" />
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {recent.map((m) => (
+                  <MatchCard key={m.id} match={matchToRow(m)} />
+                ))}
+              </div>
+            )}
+          </Section>
+        </div>
+
+        <div className="space-y-8">
+          <Section title="Table" action={{ href: `/leagues/${league.id}?tab=standings`, label: "Full table" }}>
+            {teams.loading ? (
+              <LoadingBlock rows={5} height={32} />
+            ) : teams.error ? (
+              <ErrorState message={teams.error} onRetry={teams.reload} />
+            ) : (teams.data ?? []).length === 0 ? (
+              <EmptyState title="No teams yet" />
+            ) : (
+              <StandingsTable teams={teams.data!} compact />
+            )}
+          </Section>
+
+          <Section title="Leaders">
+            {leaders.loading ? (
+              <LoadingBlock rows={4} height={64} />
+            ) : (leaders.data ?? []).length === 0 ? (
+              <EmptyState title="No leaderboard yet" />
+            ) : (
+              <div className="space-y-3">
+                {leaders.data!.map((l) => (
+                  <LeaderCard
+                    key={l.label}
+                    label={LEADER_LABELS[l.label] ?? l.label}
+                    icon={LEADER_ICONS[l.label]}
+                    value={l.value}
+                    playerName={l.player_name}
+                    teamName={l.team_name}
+                  />
+                ))}
+              </div>
+            )}
+          </Section>
+        </div>
+      </div>
+    </>
   );
 }
