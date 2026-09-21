@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
+const GOOGLE_CLIENT_ID = process.env.NEXTPUBLIC_CLIENT_ID ?? "";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -95,7 +95,7 @@ export default function LoginPage() {
               />
             ) : (
               <Alert color="yellow" variant="light" className="w-full">
-                Google sign-in isn&apos;t configured yet. Add <code>NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> to{" "}
+                Google sign-in isn&apos;t configured yet. Add <code>NEXTPUBLIC_CLIENT_ID</code> to{" "}
                 <code>.env.local</code> and the same web client ID to <code>google.client_id</code> in the API&apos;s{" "}
                 <code>config.yml</code>.
               </Alert>
