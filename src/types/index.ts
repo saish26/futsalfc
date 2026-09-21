@@ -169,3 +169,57 @@ export interface LeaderboardItem {
   player_name: string | null;
   team_name: string | null;
 }
+
+/* ---------- Auth & player area ---------- */
+
+export type Role = "player" | "admin" | string;
+
+export interface AuthUser {
+  id: string;
+  name: string;
+  role: Role;
+  exp: number;
+}
+
+export interface LoginResponse {
+  token: string;
+}
+
+export interface GoogleLoginResponse {
+  token: string;
+  needsOnboarding: boolean;
+  profile?: PlayerDetail;
+}
+
+export interface MyProfileResponse {
+  role: Role;
+  needs_onboarding?: boolean;
+  profile: PlayerDetail;
+}
+
+export interface CreateProfileResponse {
+  role: Role;
+  needs_onboarding: boolean;
+  profile: PlayerDetail;
+}
+
+export type AttendanceStatus = "available" | "unavailable" | string;
+
+export interface AttendanceRow {
+  player_id: string;
+  player_name: string;
+  status: AttendanceStatus;
+  position: string;
+}
+
+export interface PlayerDue {
+  player_id: string;
+  remaining: number;
+  updated_at?: string;
+}
+
+export interface PlayerDueRow {
+  player_id: string;
+  player_name: string;
+  remaining: number;
+}

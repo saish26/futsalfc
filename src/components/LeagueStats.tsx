@@ -6,6 +6,7 @@ import { IconBallFootball, IconSearch, IconShoe, IconSquareFilled } from "@table
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import LeaderCard from "./LeaderCard";
+import PointsExplainer from "./PointsExplainer";
 import PositionBadge from "./PositionBadge";
 import { EmptyState, ErrorState, LoadingBlock } from "./States";
 
@@ -85,6 +86,8 @@ export default function LeagueStats({ leagueId }: { leagueId: string }) {
       ) : (
         <StatsTable rows={rows} sort={sort} />
       )}
+
+      <PointsExplainer />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import Section from "@/components/Section";
 import StandingsTable from "@/components/StandingsTable";
 import StatTile from "@/components/StatTile";
 import { EmptyState, ErrorState, LoadingBlock } from "@/components/States";
+import { useAuth } from "@/context/AuthContext";
 import StatusBadge from "@/components/StatusBadge";
 import { useApi } from "@/hooks/useApi";
 import {
@@ -37,6 +38,7 @@ const LEADER_LABELS: Record<string, string> = {
 };
 
 export default function Home() {
+  const { user, ready, isPlayer } = useAuth();
   const leagues = useApi(getLeagues);
   const league = useMemo(() => pickActiveLeague(leagues.data ?? []), [leagues.data]);
   const leagueId = league?.id;
@@ -103,6 +105,34 @@ export default function Home() {
           </Link>
         </div>
       </div>
+
+      {ready && !user && (
+        <Link
+          href="/login"
+          className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-pitch/40 bg-pitch/10 px-5 py-4 hover:bg-pitch/15"
+        >
+          <span className="text-sm">
+            <strong className="font-semibold">Playing this season?</strong>{" "}
+            <span className="text-green-100/80">
+              Sign in with Google to see your own stats, fixtures and set your availability.
+            </span>
+          </span>
+          <span className="rounded-md bg-pitch px-4 py-2 text-sm font-semibold text-ink">Sign in</span>
+        </Link>
+      )}
+
+      {ready && user && isPlayer && (
+        <Link
+          href="/me"
+          className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-panel px-5 py-4 hover:border-pitch/50 hover:bg-panel-2"
+        >
+          <span className="text-sm">
+            <strong className="font-semibold">{user.name}</strong>{" "}
+            <span className="text-muted">— your stats, fixtures and availability</span>
+          </span>
+          <span className="text-sm font-medium text-pitch">My profile →</span>
+        </Link>
+      )}
 
       <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatTile label="Teams" value={teams.data?.length ?? "–"} />

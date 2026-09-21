@@ -1,6 +1,9 @@
 import "@/styles/globals.css";
+import { AuthProvider } from "@/context/AuthContext";
 import MainLayout from "@/layouts/MainLayout";
 import { createTheme, MantineProvider } from "@mantine/core";
+import { Notifications } from "@mantine/notifications";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import type { AppProps } from "next/app";
 import { Barlow_Condensed, Inter } from "next/font/google";
 import Head from "next/head";
@@ -21,6 +24,8 @@ const theme = createTheme({
   },
 });
 
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
+
 export default function App({ Component, pageProps }: AppProps) {
   return (
     <MantineProvider theme={theme} defaultColorScheme="dark" forceColorScheme="dark">
@@ -35,9 +40,15 @@ export default function App({ Component, pageProps }: AppProps) {
           --font-barlow: ${barlow.style.fontFamily};
         }
       `}</style>
-      <MainLayout>
-        <Component {...pageProps} />
-      </MainLayout>
+      <Notifications position="top-right" />
+      {/* An empty client id keeps the app usable; the Google button then shows a setup hint. */}
+      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+        <AuthProvider>
+          <MainLayout>
+            <Component {...pageProps} />
+          </MainLayout>
+        </AuthProvider>
+      </GoogleOAuthProvider>
     </MantineProvider>
   );
 }
