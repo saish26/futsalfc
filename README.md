@@ -13,7 +13,7 @@ npm run dev
 | Variable | Purpose |
 | --- | --- |
 | `NEXT_PUBLIC_API_BASE_URL` | Base URL axios uses — the API directly (`http://localhost:8080`), or `/backend` to go through the Next rewrite. |
-| `NEXTPUBLIC_CLIENT_ID` | Google **Web** OAuth client ID. Empty hides the Google button and shows a setup hint. |
+| `NEXT_PUBLIC_CLIENT_ID` | Google **Web** OAuth client ID. Empty hides the Google button and shows a setup hint. |
 | `API_PROXY_TARGET` | Only used with `/backend`: where that rewrite forwards to. |
 
 ## Google sign-in
@@ -22,7 +22,7 @@ Players sign in with Google; admins sign in with email and password (the API rej
 
 1. Google Cloud Console → **APIs & Services → Credentials → Create credentials → OAuth client ID → Web application**. An Android/iOS client ID will not work — the API validates the ID token's audience against a web client ID.
 2. Authorised JavaScript origins: `http://localhost:3000` for local work, plus the deployed origin.
-3. Put the client ID in `NEXTPUBLIC_CLIENT_ID` here **and** in `google.client_id` in the API's `config.yml` — they must match.
+3. Put the client ID in `NEXT_PUBLIC_CLIENT_ID` here **and** in `google.client_id` in the API's `config.yml` — they must match.
 4. Restart both the API and `npm run dev`.
 
 ### Sign-in flow
