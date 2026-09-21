@@ -24,7 +24,7 @@ const theme = createTheme({
   },
 });
 
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_CLIENT_ID ?? "";
+const GOOGLE_CLIENT_ID = process.env.CLIENT_ID ?? "";
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
