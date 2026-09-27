@@ -223,3 +223,107 @@ export interface PlayerDueRow {
   player_name: string;
   remaining: number;
 }
+
+/* ---------- Admin ---------- */
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateUserInput {
+  name: string;
+  email: string;
+  password: string;
+  role: Role;
+  position?: string;
+}
+
+export interface LeagueInput {
+  name: string;
+  start_date: string;
+  end_date: string;
+  status: string;
+  game_weeks: number;
+}
+
+export interface MatchInput {
+  league_id: string;
+  team1_id: string;
+  team2_id: string;
+  game_week_id?: string | null;
+  match_date?: string | null;
+  status?: MatchStatus;
+}
+
+export interface ResultInput {
+  team1_score: number;
+  team2_score: number;
+  team1_loan_count: number;
+  team2_loan_count: number;
+  match_date?: string | null;
+}
+
+export interface GoalInput {
+  team_id: string;
+  player_id?: string | null;
+  assist_player_id?: string | null;
+}
+
+export interface CardInput {
+  team_id: string;
+  player_id: string;
+  minute: number;
+  is_yellow: boolean;
+  is_red: boolean;
+}
+
+export interface PenaltySaveInput {
+  team_id: string;
+  player_id?: string | null;
+}
+
+export interface MatchCard {
+  id: string;
+  match_id: string;
+  team_id: string;
+  player_id: string;
+  is_yellow: boolean;
+  is_red: boolean;
+  minute: number;
+  created_at: string;
+}
+
+export interface MatchPenaltySave {
+  id: string;
+  match_id: string;
+  team_id: string;
+  player_id: string;
+  created_at: string;
+}
+
+export interface LineupEntryInput {
+  player_id: string;
+  is_loan: boolean;
+}
+
+export interface PlayerStatsInput {
+  goals: number;
+  assists: number;
+  clean_sheets: number;
+  penalty_saves: number;
+  penalty_missed: number;
+  goals_conceded: number;
+  yellow_cards: number;
+  red_cards: number;
+}
+
+export interface UnassignedPlayer {
+  id: string;
+  name: string;
+  position: string;
+}

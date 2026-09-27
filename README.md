@@ -60,6 +60,28 @@ src/
     teams/index.tsx, teams/[id].tsx
     players/index.tsx, players/[id].tsx
     stats.tsx               player leaderboard with league picker
+    admin/index.tsx         admin overview: this week's matches, dues, wallet
+    admin/leagues.tsx       create/edit/delete leagues, status, generate fixtures, game week status
+    admin/teams.tsx         create/rename/delete teams, add & remove squad players
+    admin/matches.tsx       schedule and delete matches
+    admin/matches/[id].tsx  match console: goals, cards, penalty saves, result, loans, lineups, status
+    admin/players.tsx       positions, stat corrections, delete players
+    admin/users.tsx         create/edit/delete accounts and roles
+    admin/dues.tsx          set dues and record payments
+    admin/wallet.tsx        club balance: add and deduct
 ```
 
-Admin write endpoints (creating leagues, fixtures, results, dues, wallet) are not in this UI yet — the admin view is read-only.
+## Admin console
+
+Everything at `/admin` is gated on the JWT's `role` being `admin` (`components/admin/RequireAdmin.tsx`), and each
+screen maps directly onto the API's admin endpoints. Notes worth knowing:
+
+- **Completing a match** applies the score to the table and player points, and the API then refuses further goals,
+  cards or lineup changes — the console shows that state and disables the forms.
+- **Availability and attendance** can only change while a game week is `upcoming`; the API enforces it.
+- **`PUT /api/players/:id`** binds the whole player row, so the UI sends the record back with only the intended field
+  changed.
+- **Generate fixtures** fails if a league already has matches, by design in the API.
+- **Players with no position** are listed first on the Players tab with a "Needs a position" filter. Accounts that
+  signed in but never onboarded have no player row; picking a position for them calls
+  `POST /api/players/:userId/profile` (admin-only) to create it.

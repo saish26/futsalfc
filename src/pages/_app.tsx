@@ -2,6 +2,7 @@ import "@/styles/globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import MainLayout from "@/layouts/MainLayout";
 import { createTheme, MantineProvider } from "@mantine/core";
+import { ModalsProvider } from "@mantine/modals";
 import { Notifications } from "@mantine/notifications";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import type { AppProps } from "next/app";
@@ -44,9 +45,11 @@ export default function App({ Component, pageProps }: AppProps) {
       {/* An empty client id keeps the app usable; the Google button then shows a setup hint. */}
       <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
         <AuthProvider>
-          <MainLayout>
-            <Component {...pageProps} />
-          </MainLayout>
+          <ModalsProvider>
+            <MainLayout>
+              <Component {...pageProps} />
+            </MainLayout>
+          </ModalsProvider>
         </AuthProvider>
       </GoogleOAuthProvider>
     </MantineProvider>

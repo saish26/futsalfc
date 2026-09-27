@@ -1,7 +1,7 @@
 import { useAuth } from "@/context/AuthContext";
 import { initials } from "@/utils/helpers";
 import { Avatar, Menu } from "@mantine/core";
-import { IconBallFootball, IconLogout, IconUser } from "@tabler/icons-react";
+import { IconBallFootball, IconLogout, IconSettings, IconUser } from "@tabler/icons-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import type { ReactNode } from "react";
@@ -18,7 +18,7 @@ const NAV = [
 
 export default function MainLayout({ children }: { children: ReactNode }) {
   const { pathname } = useRouter();
-  const { user, ready, signOut, isPlayer } = useAuth();
+  const { user, ready, signOut, isPlayer, isAdmin } = useAuth();
 
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
@@ -65,6 +65,11 @@ export default function MainLayout({ children }: { children: ReactNode }) {
                   <Menu.Item component={Link} href="/me" leftSection={<IconUser size={16} />}>
                     My profile
                   </Menu.Item>
+                  {isAdmin && (
+                    <Menu.Item component={Link} href="/admin" leftSection={<IconSettings size={16} />}>
+                      Admin console
+                    </Menu.Item>
+                  )}
                   <Menu.Divider />
                   <Menu.Item color="red" leftSection={<IconLogout size={16} />} onClick={() => signOut()}>
                     Sign out

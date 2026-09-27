@@ -360,9 +360,15 @@ function AdminHome({ name }: { name?: string }) {
         </Section>
       </div>
 
-      <Alert color="blue" variant="light" icon={<IconAlertCircle size={16} />} className="mt-8">
-        This UI is read-only. Creating leagues, fixtures, results and dues still happens through the API.
-      </Alert>
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-pitch/40 bg-pitch/10 px-5 py-4">
+        <span className="text-sm">
+          <strong className="font-semibold">Admin console</strong>{" "}
+          <span className="text-green-100/80">— leagues, fixtures, results, squads, dues and the wallet.</span>
+        </span>
+        <Link href="/admin" className="rounded-md bg-pitch px-4 py-2 text-sm font-semibold text-ink hover:bg-green-400">
+          Open console
+        </Link>
+      </div>
     </>
   );
 }
