@@ -81,13 +81,18 @@ export default function AdminMatchConsole() {
     saves.reload();
   };
 
-  if (!ready || match.loading)
+  // Only block on the very first load. Every goal/card/save/result triggers a background
+  // match.reload() — useApi keeps the previous data visible while that's in flight, so
+  // gating on match.loading here would tear down and remount the whole tab (forms, chip
+  // selections, even the active tab) after every single entry. Once we have data once,
+  // keep rendering it — a reload error just leaves the last-known match on screen.
+  if (!ready || (!m && match.loading))
     return (
       <AdminLayout title="Match">
         <LoadingBlock rows={3} height={96} />
       </AdminLayout>
     );
-  if (match.error || !m)
+  if (!m)
     return (
       <AdminLayout title="Match">
         <ErrorState message={match.error ?? "Match not found"} onRetry={match.reload} />

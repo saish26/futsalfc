@@ -35,9 +35,16 @@ export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[] = [], enabl
     fetcherRef
       .current()
       .then((data) => !cancelled && setResult({ key, data, error: null }))
-      .catch((err) =>
-        !cancelled &&
-        setResult({ key, data: undefined, error: typeof err === "string" && err ? err : "Something went wrong" })
+      .catch(
+        (err) =>
+          !cancelled &&
+          // Keep whatever data we already had (e.g. a background reload after a write)
+          // instead of blanking the page out from under the user just because a refetch failed.
+          setResult((prev) => ({
+            key,
+            data: prev.data,
+            error: typeof err === "string" && err ? err : "Something went wrong",
+          }))
       );
     return () => {
       cancelled = true;
