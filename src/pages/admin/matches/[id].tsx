@@ -316,7 +316,7 @@ function GoalForm({
         submitGoal(match.id, {
           team_id: team,
           player_id: mode === "none" ? null : scorer,
-          assist_player_id: mode === "team" ? assist : null,
+          assist_player_id: mode === "own" ? null : assist,
         }),
       { success: mode === "own" ? "Own goal recorded" : "Goal recorded" }
     );
@@ -376,9 +376,11 @@ function GoalForm({
           </div>
         )}
 
-        {mode === "team" && (
+        {mode !== "own" && (
           <div>
-            <div className="mb-1 text-xs font-medium text-muted">Assist (optional)</div>
+            <div className="mb-1 text-xs font-medium text-muted">
+              {mode === "none" ? "Assist, if the goal still had one (optional)" : "Assist (optional)"}
+            </div>
             <PlayerChips players={assistSquad} value={assist} onChange={setAssist} />
           </div>
         )}
