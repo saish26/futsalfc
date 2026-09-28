@@ -84,3 +84,22 @@ export const isRealId = (id?: string | null) => !!id && id !== NIL_UUID;
  * Treat that as "no profile yet" so onboarding still shows.
  */
 export const hasPlayerProfile = (profile?: { playerId?: string } | null) => isRealId(profile?.playerId);
+
+/**
+ * The API doesn't label own goals in the match-events feed (they're stored as a normal
+ * goal credited to the benefiting team, scored by a player from the other side). Detect
+ * one by checking whether the scorer's name belongs to the squad that did NOT benefit.
+ * Heuristic (events carry names, not ids) — false negatives just show as a normal goal.
+ */
+export const isOwnGoalEvent = (
+  event: { event_type: string; player_name: string; is_home_team: boolean },
+  homeSquad: { name: string }[],
+  awaySquad: { name: string }[]
+) => {
+  if (event.event_type !== "goal" || !event.player_name) return false;
+  const creditedSquad = event.is_home_team ? homeSquad : awaySquad;
+  const otherSquad = event.is_home_team ? awaySquad : homeSquad;
+  const inOther = otherSquad.some((p) => p.name === event.player_name);
+  const inCredited = creditedSquad.some((p) => p.name === event.player_name);
+  return inOther && !inCredited;
+};

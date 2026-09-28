@@ -1,4 +1,5 @@
 import AdminLayout from "@/components/admin/AdminLayout";
+import PlayerChips from "@/components/admin/PlayerChips";
 import PositionBadge from "@/components/PositionBadge";
 import { Panel } from "@/components/Section";
 import { EmptyState, ErrorState, LoadingBlock } from "@/components/States";
@@ -23,8 +24,19 @@ import {
 } from "@/services/api";
 import type { Match, MatchStatus, TeamPlayer } from "@/types";
 import { runAction } from "@/utils/actions";
-import { formatKickoff } from "@/utils/helpers";
-import { ActionIcon, Alert, Badge, Button, Checkbox, NumberInput, Select, Switch, Tabs } from "@mantine/core";
+import { formatKickoff, isOwnGoalEvent } from "@/utils/helpers";
+import {
+  ActionIcon,
+  Alert,
+  Badge,
+  Button,
+  Checkbox,
+  MultiSelect,
+  NumberInput,
+  SegmentedControl,
+  Select,
+  Tabs,
+} from "@mantine/core";
 import { DateTimePicker } from "@mantine/dates";
 import { modals } from "@mantine/modals";
 import {
@@ -41,6 +53,11 @@ import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
 
 const STATUSES: MatchStatus[] = ["scheduled", "live", "completed", "cancelled"];
+
+interface TeamOption {
+  value: string;
+  label: string;
+}
 
 export default function AdminMatchConsole() {
   const router = useRouter();
@@ -64,7 +81,12 @@ export default function AdminMatchConsole() {
     saves.reload();
   };
 
-  if (!ready || match.loading) return <AdminLayout title="Match"><LoadingBlock rows={3} height={96} /></AdminLayout>;
+  if (!ready || match.loading)
+    return (
+      <AdminLayout title="Match">
+        <LoadingBlock rows={3} height={96} />
+      </AdminLayout>
+    );
   if (match.error || !m)
     return (
       <AdminLayout title="Match">
@@ -73,12 +95,14 @@ export default function AdminMatchConsole() {
     );
 
   const finished = m.status === "completed" || m.status === "cancelled";
-  const teamOptions = [
+  const teamOptions: TeamOption[] = [
     { value: m.team1_id, label: m.team1?.name ?? "Home" },
     { value: m.team2_id, label: m.team2?.name ?? "Away" },
   ];
   const squadFor = (teamId: string | null) =>
     teamId === m.team1_id ? (homeSquad.data ?? []) : teamId === m.team2_id ? (awaySquad.data ?? []) : [];
+  const otherTeamId = (teamId: string | null) =>
+    teamId === m.team1_id ? m.team2_id : teamId === m.team2_id ? m.team1_id : null;
 
   const changeStatus = (status: MatchStatus) => {
     const apply = async () => {
@@ -150,9 +174,22 @@ export default function AdminMatchConsole() {
         <Tabs.Panel value="events">
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             <div className="space-y-6">
-              <GoalForm match={m} teamOptions={teamOptions} squadFor={squadFor} disabled={finished} onDone={reloadAll} />
-              <CardForm match={m} teamOptions={teamOptions} squadFor={squadFor} disabled={finished} onDone={() => { reloadAll(); cards.reload(); }} />
-              <PenaltySaveForm match={m} teamOptions={teamOptions} squadFor={squadFor} disabled={finished} onDone={() => { reloadAll(); saves.reload(); }} />
+              <GoalForm
+                match={m}
+                teamOptions={teamOptions}
+                squadFor={squadFor}
+                otherTeamId={otherTeamId}
+                disabled={finished}
+                onDone={reloadAll}
+              />
+              <CardForm match={m} teamOptions={teamOptions} squadFor={squadFor} disabled={finished} onDone={reloadAll} />
+              <PenaltySaveForm
+                match={m}
+                teamOptions={teamOptions}
+                squadFor={squadFor}
+                disabled={finished}
+                onDone={reloadAll}
+              />
             </div>
 
             <Panel className="p-4">
@@ -163,19 +200,27 @@ export default function AdminMatchConsole() {
                 <EmptyState title="Nothing recorded yet" />
               ) : (
                 <ul className="space-y-2">
-                  {events.data!.events!.map((e, i) => (
-                    <li key={i} className="flex items-center gap-2 rounded-lg bg-panel-2/60 px-3 py-2 text-sm">
-                      {e.event_type === "goal" && <IconBallFootball size={16} className="text-pitch" />}
-                      {e.event_type === "yellow_card" && <IconSquareFilled size={12} className="text-yellow-400" />}
-                      {e.event_type === "red_card" && <IconSquareFilled size={12} className="text-red-500" />}
-                      {e.event_type === "penalty_save" && <IconHandStop size={16} className="text-sky-400" />}
-                      <span className="min-w-0 flex-1 truncate">
-                        {e.player_name || "Unassigned"}
-                        {e.assist_player_name ? ` (assist ${e.assist_player_name})` : ""}
-                      </span>
-                      <span className="shrink-0 text-xs text-muted">{e.team_name}</span>
-                    </li>
-                  ))}
+                  {events.data!.events!.map((e, i) => {
+                    const ownGoal = isOwnGoalEvent(e, homeSquad.data ?? [], awaySquad.data ?? []);
+                    return (
+                      <li key={i} className="flex items-center gap-2 rounded-lg bg-panel-2/60 px-3 py-2 text-sm">
+                        {e.event_type === "goal" && <IconBallFootball size={16} className="text-pitch" />}
+                        {e.event_type === "yellow_card" && <IconSquareFilled size={12} className="text-yellow-400" />}
+                        {e.event_type === "red_card" && <IconSquareFilled size={12} className="text-red-500" />}
+                        {e.event_type === "penalty_save" && <IconHandStop size={16} className="text-sky-400" />}
+                        <span className="min-w-0 flex-1 truncate">
+                          {e.player_name || "Unassigned"}
+                          {e.assist_player_name ? ` (assist ${e.assist_player_name})` : ""}
+                        </span>
+                        {ownGoal && (
+                          <Badge size="xs" variant="filled" color="orange">
+                            OG
+                          </Badge>
+                        )}
+                        <span className="shrink-0 text-xs text-muted">{e.team_name}</span>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
 
@@ -225,27 +270,43 @@ export default function AdminMatchConsole() {
 
 /* ---------------- goals ---------------- */
 
+type GoalMode = "team" | "own" | "none";
+
+const GOAL_MODES: { value: GoalMode; label: string }[] = [
+  { value: "team", label: "Team goal" },
+  { value: "own", label: "Own goal" },
+  { value: "none", label: "No scorer" },
+];
+
 function GoalForm({
   match,
   teamOptions,
   squadFor,
+  otherTeamId,
   disabled,
   onDone,
 }: {
   match: Match;
-  teamOptions: { value: string; label: string }[];
+  teamOptions: TeamOption[];
   squadFor: (teamId: string | null) => TeamPlayer[];
+  otherTeamId: (teamId: string | null) => string | null;
   disabled: boolean;
   onDone: () => void;
 }) {
-  const [team, setTeam] = useState<string | null>(null);
+  const [team, setTeam] = useState<string>(teamOptions[0].value);
+  const [mode, setMode] = useState<GoalMode>("team");
   const [scorer, setScorer] = useState<string | null>(null);
   const [assist, setAssist] = useState<string | null>(null);
-  const [ownGoal, setOwnGoal] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const squad = squadFor(team);
-  const options = squad.map((p) => ({ value: p.id, label: p.name }));
+  // "Own goal" is scored by a player on the OTHER side of this match, not the team that benefits.
+  const scorerSquad = mode === "own" ? squadFor(otherTeamId(team)) : squadFor(team);
+  const assistSquad = squadFor(team).filter((p) => p.id !== scorer);
+
+  const resetPickers = () => {
+    setScorer(null);
+    setAssist(null);
+  };
 
   const submit = async () => {
     if (!team) return;
@@ -254,18 +315,19 @@ function GoalForm({
       () =>
         submitGoal(match.id, {
           team_id: team,
-          player_id: ownGoal ? null : scorer,
-          assist_player_id: ownGoal ? null : assist,
+          player_id: mode === "none" ? null : scorer,
+          assist_player_id: mode === "team" ? assist : null,
         }),
-      { success: "Goal recorded" }
+      { success: mode === "own" ? "Own goal recorded" : "Goal recorded" }
     );
     setBusy(false);
     if (done) {
-      setScorer(null);
-      setAssist(null);
+      resetPickers();
       onDone();
     }
   };
+
+  const canSubmit = !!team && (mode === "none" || !!scorer);
 
   return (
     <Panel className="p-4">
@@ -273,45 +335,62 @@ function GoalForm({
         <IconBallFootball size={18} className="text-pitch" /> Add goal
       </h3>
       <div className="space-y-3">
-        <Select
-          label="Scoring team"
-          data={teamOptions}
-          value={team}
+        <div>
+          <div className="mb-1 text-xs font-medium text-muted">Goes on the scoreboard for</div>
+          <SegmentedControl
+            fullWidth
+            size="xs"
+            color="green"
+            data={teamOptions}
+            value={team}
+            onChange={(v) => {
+              setTeam(v);
+              resetPickers();
+            }}
+          />
+        </div>
+
+        <SegmentedControl
+          fullWidth
+          size="xs"
+          data={GOAL_MODES}
+          value={mode}
           onChange={(v) => {
-            setTeam(v);
-            setScorer(null);
-            setAssist(null);
+            setMode(v as GoalMode);
+            resetPickers();
           }}
-          allowDeselect={false}
         />
-        <Switch
-          label="Unassigned goal (no scorer credited)"
-          checked={ownGoal}
-          onChange={(e) => setOwnGoal(e.currentTarget.checked)}
-        />
-        {!ownGoal && (
-          <>
-            <Select
-              label="Scorer"
-              data={options}
+
+        {mode !== "none" && (
+          <div>
+            <div className="mb-1 text-xs font-medium text-muted">
+              {mode === "own" ? "Who put it in their own net?" : "Scorer"}
+            </div>
+            <PlayerChips
+              players={scorerSquad}
               value={scorer}
               onChange={setScorer}
-              searchable
-              disabled={!team}
-              nothingFoundMessage="No players in this squad"
+              color={mode === "own" ? "orange" : "green"}
+              emptyMessage={mode === "own" ? "The other team has no squad set up" : "No players in this squad"}
             />
-            <Select
-              label="Assist (optional)"
-              data={options.filter((o) => o.value !== scorer)}
-              value={assist}
-              onChange={setAssist}
-              searchable
-              clearable
-              disabled={!team}
-            />
-          </>
+          </div>
         )}
-        <Button fullWidth loading={busy} disabled={disabled || !team || (!ownGoal && !scorer)} onClick={submit}>
+
+        {mode === "team" && (
+          <div>
+            <div className="mb-1 text-xs font-medium text-muted">Assist (optional)</div>
+            <PlayerChips players={assistSquad} value={assist} onChange={setAssist} />
+          </div>
+        )}
+
+        {mode === "own" && (
+          <p className="text-xs text-muted">
+            Counts on the scoreboard for {teamOptions.find((t) => t.value === team)?.label}. No assist and no goal
+            credit for the scorer — only the score changes.
+          </p>
+        )}
+
+        <Button fullWidth loading={busy} disabled={disabled || !canSubmit} onClick={submit}>
           Record goal
         </Button>
       </div>
@@ -329,12 +408,12 @@ function CardForm({
   onDone,
 }: {
   match: Match;
-  teamOptions: { value: string; label: string }[];
+  teamOptions: TeamOption[];
   squadFor: (teamId: string | null) => TeamPlayer[];
   disabled: boolean;
   onDone: () => void;
 }) {
-  const [team, setTeam] = useState<string | null>(null);
+  const [team, setTeam] = useState<string>(teamOptions[0].value);
   const [player, setPlayer] = useState<string | null>(null);
   const [minute, setMinute] = useState<number>(1);
   const [red, setRed] = useState(false);
@@ -367,24 +446,18 @@ function CardForm({
         <IconSquareFilled size={14} className={red ? "text-red-500" : "text-yellow-400"} /> Add card
       </h3>
       <div className="space-y-3">
-        <Select
-          label="Team"
+        <SegmentedControl
+          fullWidth
+          size="xs"
+          color={red ? "red" : "yellow"}
           data={teamOptions}
           value={team}
           onChange={(v) => {
             setTeam(v);
             setPlayer(null);
           }}
-          allowDeselect={false}
         />
-        <Select
-          label="Player"
-          data={squadFor(team).map((p) => ({ value: p.id, label: p.name }))}
-          value={player}
-          onChange={setPlayer}
-          searchable
-          disabled={!team}
-        />
+        <PlayerChips players={squadFor(team)} value={player} onChange={setPlayer} color={red ? "red" : "yellow"} />
         <div className="grid grid-cols-2 items-end gap-3">
           <NumberInput label="Minute" min={0} max={200} value={minute} onChange={(v) => setMinute(Number(v) || 0)} />
           <Checkbox label="Red card" checked={red} onChange={(e) => setRed(e.currentTarget.checked)} />
@@ -413,12 +486,12 @@ function PenaltySaveForm({
   onDone,
 }: {
   match: Match;
-  teamOptions: { value: string; label: string }[];
+  teamOptions: TeamOption[];
   squadFor: (teamId: string | null) => TeamPlayer[];
   disabled: boolean;
   onDone: () => void;
 }) {
-  const [team, setTeam] = useState<string | null>(null);
+  const [team, setTeam] = useState<string>(teamOptions[0].value);
   const [player, setPlayer] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -441,24 +514,18 @@ function PenaltySaveForm({
         <IconHandStop size={18} className="text-sky-400" /> Penalty save
       </h3>
       <div className="space-y-3">
-        <Select
-          label="Team"
+        <SegmentedControl
+          fullWidth
+          size="xs"
+          color="blue"
           data={teamOptions}
           value={team}
           onChange={(v) => {
             setTeam(v);
             setPlayer(null);
           }}
-          allowDeselect={false}
         />
-        <Select
-          label="Keeper"
-          data={squadFor(team).map((p) => ({ value: p.id, label: p.name }))}
-          value={player}
-          onChange={setPlayer}
-          searchable
-          disabled={!team}
-        />
+        <PlayerChips players={squadFor(team)} value={player} onChange={setPlayer} color="blue" />
         <Button fullWidth color="blue" loading={busy} disabled={disabled || !team || !player} onClick={submit}>
           Record save
         </Button>
@@ -577,23 +644,30 @@ function LineupEditor({
   disabled: boolean;
   onChanged: () => void;
 }) {
-  const [player, setPlayer] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string[]>([]);
   const [isLoan, setIsLoan] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const inLineup = useMemo(() => new Set(current.map((p) => p.player_id)), [current]);
   const pool = (isLoan ? otherSquad : squad).filter((p) => !inLineup.has(p.id));
+  const poolOptions = pool.map((p) => ({ value: p.id, label: p.name }));
 
-  const add = async () => {
-    if (!player) return;
+  const addSelected = async () => {
+    if (selected.length === 0) return;
     setBusy(true);
     const done = await runAction(
-      () => addLineupPlayers(gameWeekId, matchId, teamId, [{ player_id: player, is_loan: isLoan }]),
-      { success: "Added to lineup" }
+      () =>
+        addLineupPlayers(
+          gameWeekId,
+          matchId,
+          teamId,
+          selected.map((player_id) => ({ player_id, is_loan: isLoan }))
+        ),
+      { success: `${selected.length} player${selected.length > 1 ? "s" : ""} added to lineup` }
     );
     setBusy(false);
     if (done) {
-      setPlayer(null);
+      setSelected([]);
       onChanged();
     }
   };
@@ -636,26 +710,38 @@ function LineupEditor({
       )}
 
       <div className="mt-3 space-y-2">
-        <Switch
-          size="xs"
-          label="Borrowed from the other team"
-          checked={isLoan}
-          onChange={(e) => {
-            setIsLoan(e.currentTarget.checked);
-            setPlayer(null);
-          }}
-        />
-        <Select
-          placeholder="Add a player"
-          data={pool.map((p) => ({ value: p.id, label: p.name }))}
-          value={player}
-          onChange={setPlayer}
+        <div className="flex items-center justify-between gap-2">
+          <Checkbox
+            size="xs"
+            label="Borrowed from the other team"
+            checked={isLoan}
+            onChange={(e) => {
+              setIsLoan(e.currentTarget.checked);
+              setSelected([]);
+            }}
+          />
+          {poolOptions.length > 0 && (
+            <button
+              type="button"
+              className="text-xs font-medium text-pitch hover:underline disabled:opacity-40"
+              disabled={disabled}
+              onClick={() => setSelected(poolOptions.map((o) => o.value))}
+            >
+              Select all ({poolOptions.length})
+            </button>
+          )}
+        </div>
+        <MultiSelect
+          placeholder={poolOptions.length === 0 ? "Nobody left to add" : "Pick one or more players"}
+          data={poolOptions}
+          value={selected}
+          onChange={setSelected}
           searchable
-          disabled={disabled}
-          nothingFoundMessage="Nobody left to add"
+          disabled={disabled || poolOptions.length === 0}
+          nothingFoundMessage="No players match"
         />
-        <Button fullWidth size="xs" loading={busy} disabled={disabled || !player} onClick={add}>
-          Add to lineup
+        <Button fullWidth size="xs" loading={busy} disabled={disabled || selected.length === 0} onClick={addSelected}>
+          Add {selected.length > 0 ? `${selected.length} player${selected.length > 1 ? "s" : ""}` : "to lineup"}
         </Button>
       </div>
     </Panel>
