@@ -72,3 +72,15 @@ export const hasScore = (m: Pick<Match, "status">) => m.status === "completed" |
 export const pickActiveLeague = <T extends { status: string; start_date: string }>(leagues: T[] = []) =>
   leagues.find((l) => l.status === "active") ??
   [...leagues].sort((a, b) => dayjs(b.start_date).valueOf() - dayjs(a.start_date).valueOf())[0];
+
+/** Postgres/Go zero UUID. The API returns it instead of an error when a row is missing. */
+export const NIL_UUID = "00000000-0000-0000-0000-000000000000";
+
+export const isRealId = (id?: string | null) => !!id && id !== NIL_UUID;
+
+/**
+ * GET /api/players/me runs a raw query with GORM's .Scan(), which reports no error when the
+ * player row doesn't exist — it answers `needs_onboarding: false` with a zero-UUID profile.
+ * Treat that as "no profile yet" so onboarding still shows.
+ */
+export const hasPlayerProfile = (profile?: { playerId?: string } | null) => isRealId(profile?.playerId);

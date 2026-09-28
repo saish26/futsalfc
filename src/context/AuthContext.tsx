@@ -1,5 +1,6 @@
 import { getMyProfile } from "@/services/api";
 import type { AuthUser, PlayerDetail } from "@/types";
+import { hasPlayerProfile } from "@/utils/helpers";
 import {
   clearToken,
   getServerTokenSnapshot,
@@ -64,7 +65,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     getMyProfile()
       .then((res) => {
-        if (!cancelled) setState({ token, profile: res.profile ?? null, needsOnboarding: !!res.needs_onboarding });
+        if (cancelled) return;
+        // The API can answer needs_onboarding:false with an empty zero-UUID profile, so check the id too.
+        const onboarded = hasPlayerProfile(res.profile);
+        setState({
+          token,
+          profile: onboarded ? res.profile : null,
+          needsOnboarding: !!res.needs_onboarding || !onboarded,
+        });
       })
       .catch(() => {
         if (!cancelled) setState({ token, profile: null, needsOnboarding: false });
@@ -90,7 +98,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!decode(current)) return;
     try {
       const res = await getMyProfile();
-      setState({ token: current, profile: res.profile ?? null, needsOnboarding: !!res.needs_onboarding });
+      const onboarded = hasPlayerProfile(res.profile);
+      setState({
+        token: current,
+        profile: onboarded ? res.profile : null,
+        needsOnboarding: !!res.needs_onboarding || !onboarded,
+      });
     } catch {
       // keep whatever we already had
     }

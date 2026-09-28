@@ -23,12 +23,14 @@ import {
   getTeamAttendance,
 } from "@/services/api";
 import type { Match } from "@/types";
+import { isRealId } from "@/utils/helpers";
 import { Alert, Badge, Table } from "@mantine/core";
 import { IconAlertCircle, IconCheck, IconX } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import Head from "next/head";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useRouter } from "next/router";
+import { useEffect, useMemo } from "react";
 
 export default function MyProfilePage() {
   return (
@@ -42,12 +44,21 @@ function MyProfile() {
   const { user, profile, needsOnboarding, isAdmin } = useAuth();
 
   if (isAdmin) return <AdminHome name={user?.name} />;
-  if (needsOnboarding || !profile?.playerId) return <NeedsOnboarding />;
 
-  return <PlayerHome playerId={profile.playerId} />;
+  const playerId = profile?.playerId;
+  if (needsOnboarding || !isRealId(playerId)) return <NeedsOnboarding />;
+
+  return <PlayerHome playerId={playerId!} />;
 }
 
 function NeedsOnboarding() {
+  const router = useRouter();
+
+  // Nothing on this page works without a profile, so take them to the position picker.
+  useEffect(() => {
+    router.replace("/onboarding");
+  }, [router]);
+
   return (
     <div className="mx-auto max-w-lg py-10 text-center">
       <h1 className="font-display text-3xl font-bold uppercase tracking-wide">One more step</h1>
